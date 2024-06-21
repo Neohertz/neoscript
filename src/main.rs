@@ -1,17 +1,19 @@
-use std::{env, io};
+use clap::Parser;
+use std::{env, fs};
 
-fn main() {
+mod parser;
 
-    for arg in env::args() {
-        println!("{arg}");
-        program(&arg);
-    }
-
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    #[arg(short, long)]
+    path: std::path::PathBuf,
 }
 
-fn program(arg: &String) {
-    match arg.to_lowercase().trim() {
-        "-" => println!("Hello!"),
-        _ => {}
-    }
+fn main() {
+    let args: Args = Args::parse();
+
+    let contents = fs::read_to_string(args.path).expect("Failed to read file.");
+
+    parser::parse(&contents);
 }
