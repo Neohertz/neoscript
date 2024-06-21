@@ -1,13 +1,20 @@
 #[derive(Debug)]
 pub enum TokenType {
     Identifier,
+    Number,
+
+    OpenCurly,
+    ClosedCurly,
+
     Semicolon,
+    Equals,
+    Operator,
     Unknown,
 }
 
-struct Token {
-    token_type: TokenType,
-    value: String,
+pub struct Token {
+    pub token_type: TokenType,
+    pub value: String,
 }
 
 /**
@@ -15,44 +22,82 @@ struct Token {
  */
 fn is_valid_token(char: &str) -> bool {
     return match char {
-        "\r" => false,
-        "\t" => false,
-        "\n" => false,
-        "" => false,
+        "\r" | "\t" | "\n" | " " | "" => false,
         _ => true,
     };
 }
 
 /**
+ * TODO: May need to be more robust down the line.
+ */
+fn is_alphanumeric(char: &str) -> bool {
+    return char.to_uppercase() != char.to_lowercase();
+}
+
+/**
  * Parse the given text.
  */
-pub fn parse(str: &String) {
+pub fn parse(str: &String) -> Vec<Token> {
     let mut tokens: Vec<Token> = Vec::new();
 
-    // Reverse the characters to increase performance when popping off the vector.
+    // Reverse the characters to use pop().
     let rev: String = str.chars().rev().collect();
     let split = rev.trim().split("");
     let mut collection: Vec<&str> = split.collect();
 
     while collection.len() > 0 {
-        let res = collection.pop().expect("Error splitting string.");
+        let current: &str = collection.pop().expect("Error splitting string.");
 
-        if is_valid_token(res) == false {
+        if is_valid_token(current) == false {
             continue;
         }
 
-        let char = res.to_string();
+        let mut char = current.to_string();
 
-        match char {
-            _ => tokens.push(Token {
-                token_type: TokenType::Unknown,
-                value: char,
-            }),
-        }
+        let token = match char.as_ref() {
+            ";" => TokenType::Semicolon,
+            "=" => TokenType::Equals,
+            "+" | "-" | "/" | "*" | "%" => TokenType::Operator,
+            "{" => TokenType::OpenCurly,
+            "}" => TokenType::ClosedCurly,
+
+            // TODO: This is a bit messy, I may fix this later.
+            _ => {
+                if current.parse::<i64>().is_ok() {
+                    while collection.len() > 0 {
+                        let next = collection.last().expect("Something is very wrong lol");
+
+                        if next.parse::<i64>().is_ok() {
+                            char.push_str(collection.pop().expect("This is impossible."));
+                        } else {
+                            break;
+                        }
+                    }
+
+                    TokenType::Number
+                } else if is_alphanumeric(&char) {
+                    while collection.len() > 0 {
+                        let next = collection.last().expect("Something is very wrong lol");
+
+                        if is_alphanumeric(next) {
+                            char.push_str(collection.pop().expect("This is impossible."));
+                        } else {
+                            break;
+                        }
+                    }
+
+                    TokenType::Identifier
+                } else {
+                    TokenType::Unknown
+                }
+            }
+        };
+
+        tokens.push(Token {
+            token_type: token,
+            value: char,
+        })
     }
 
-    // Debug print
-    for token in tokens.iter() {
-        println!("{:?}, {:?}", token.token_type, token.value)
-    }
+    return tokens;
 }
