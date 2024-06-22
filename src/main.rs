@@ -1,7 +1,9 @@
 use clap::Parser;
-use std::{env, fs};
 
-mod parser;
+use std::{collections::HashMap, fs};
+
+mod ast;
+mod lexer;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -10,16 +12,22 @@ struct Args {
     path: std::path::PathBuf,
 }
 
+pub type GlobalMethod = dyn Fn() -> ();
+
 fn main() {
     let args: Args = Args::parse();
 
     let contents = fs::read_to_string(args.path).expect("Failed to read file.");
 
-    let tokens = parser::parse(&contents);
+    // Global Methods
 
-    // Show tokens of read file.
-    println!("GENERATED TOKENS: ");
-    for token in tokens.iter() {
-        println!("\t {:?}, {:?}", token.token_type, token.value)
-    }
+    let mut global_functions: HashMap<String, Box<GlobalMethod>> = HashMap::new();
+
+    //FIXME: not sure if im gonna keep this.
+    global_functions.insert(
+        "syscall".to_string(),
+        Box::new(|| println!("woah, you tried to make a syscall!")),
+    );
+
+    ast::create(lexer::tokenize(&contents));
 }

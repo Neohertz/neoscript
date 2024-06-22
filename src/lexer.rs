@@ -1,15 +1,27 @@
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum TokenType {
     Identifier,
     Number,
 
     OpenCurly,
     ClosedCurly,
+    OpenBracket,
+    ClosedBracket,
+    OpenParen,
+    ClosedParen,
 
     Semicolon,
     Equals,
     Operator,
     Unknown,
+    Dot,
+
+    // Keywords
+    Let,
+    Const,
+    Function,
+
+    EOF,
 }
 
 pub struct Token {
@@ -35,18 +47,18 @@ fn is_alphanumeric(char: &str) -> bool {
 }
 
 /**
- * Parse the given text.
+ * Tokenize the given text.
  */
-pub fn parse(str: &String) -> Vec<Token> {
+pub fn tokenize(file: &String) -> Vec<Token> {
     let mut tokens: Vec<Token> = Vec::new();
 
     // Reverse the characters to use pop().
-    let rev: String = str.chars().rev().collect();
+    let rev: String = file.chars().rev().collect();
     let split = rev.trim().split("");
-    let mut collection: Vec<&str> = split.collect();
+    let mut chars: Vec<&str> = split.collect();
 
-    while collection.len() > 0 {
-        let current: &str = collection.pop().expect("Error splitting string.");
+    while chars.len() > 0 {
+        let current: &str = chars.pop().expect("Error splitting string.");
 
         if is_valid_token(current) == false {
             continue;
@@ -54,39 +66,54 @@ pub fn parse(str: &String) -> Vec<Token> {
 
         let mut char = current.to_string();
 
+        // As of now, this only supports single characters. Arrow functions soon? :)
         let token = match char.as_ref() {
             ";" => TokenType::Semicolon,
+            "." => TokenType::Dot,
             "=" => TokenType::Equals,
             "+" | "-" | "/" | "*" | "%" => TokenType::Operator,
+
             "{" => TokenType::OpenCurly,
             "}" => TokenType::ClosedCurly,
+            "[" => TokenType::OpenBracket,
+            "]" => TokenType::ClosedBracket,
+            "(" => TokenType::OpenParen,
+            ")" => TokenType::ClosedParen,
 
             // TODO: This is a bit messy, I may fix this later.
             _ => {
+                // Handles Integers
                 if current.parse::<i64>().is_ok() {
-                    while collection.len() > 0 {
-                        let next = collection.last().expect("Something is very wrong lol");
+                    while chars.len() > 0 {
+                        let next = chars.last().unwrap();
 
                         if next.parse::<i64>().is_ok() {
-                            char.push_str(collection.pop().expect("This is impossible."));
+                            char.push_str(chars.pop().unwrap());
                         } else {
                             break;
                         }
                     }
 
                     TokenType::Number
+
+                // Handles identifiers and keywords.
                 } else if is_alphanumeric(&char) {
-                    while collection.len() > 0 {
-                        let next = collection.last().expect("Something is very wrong lol");
+                    while chars.len() > 0 {
+                        let next = chars.last().unwrap();
 
                         if is_alphanumeric(next) {
-                            char.push_str(collection.pop().expect("This is impossible."));
+                            char.push_str(chars.pop().unwrap());
                         } else {
                             break;
                         }
                     }
 
-                    TokenType::Identifier
+                    match char.as_ref() {
+                        "const" => TokenType::Const,
+                        "let" => TokenType::Let,
+                        "function" => TokenType::Function,
+                        _ => TokenType::Identifier,
+                    }
                 } else {
                     TokenType::Unknown
                 }
@@ -98,6 +125,11 @@ pub fn parse(str: &String) -> Vec<Token> {
             value: char,
         })
     }
+
+    tokens.push(Token {
+        token_type: TokenType::EOF,
+        value: String::from(""),
+    });
 
     return tokens;
 }
