@@ -2,8 +2,9 @@ use clap::Parser;
 
 use std::{collections::HashMap, fs};
 
-mod ast;
 mod lexer;
+
+mod ast;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -29,5 +30,5 @@ fn main() {
         Box::new(|| println!("woah, you tried to make a syscall!")),
     );
 
-    ast::create(lexer::tokenize(&contents));
+    ast::parser::create(lexer::tokenize(&contents));
 }

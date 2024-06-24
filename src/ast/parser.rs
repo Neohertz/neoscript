@@ -1,6 +1,8 @@
-use std::borrow::Borrow;
-
+use std::{any::Any, borrow::Borrow, string::ParseError, vec};
 use crate::lexer::{Token, TokenType};
+
+use super::decl::ASTNode;
+
 
 /**
  * Eat the next token.
@@ -29,6 +31,27 @@ fn expect_and_eat(vec: &mut Vec<Token>, token_type: TokenType) -> Result<Token, 
     Ok(vec.pop().unwrap())
 }
 
+//////////////////////////////////////
+
+
+fn BinaryOperation(vec: &mut Vec<Token>)-> ASTNode {
+    let left = expect_and_eat(vec, TokenType::Number).unwrap();
+    let op = expect_and_eat(vec, TokenType::Operator);
+
+    let right = match peek(vec).token_type {
+        TokenType::Number => eat(vec),
+        TokenType::OpenParen => {},
+        _ => panic!("ERM")
+    };
+
+    return ASTNode {
+        right: right,
+        op: op,
+    };
+}
+
+
+
 /**
  * Tokens are eaten.
  */
@@ -36,9 +59,9 @@ pub fn create(mut tokens: Vec<Token>) {
     // Reverse the tokens again to ensure that we can pop them.
     tokens = tokens.into_iter().rev().collect();
 
+    let root: Node;
+    
     while tokens.len() > 0 {
-        // to be impl
-        let token = eat(&mut tokens);
-        println!("{:?}, {:?}", token.token_type, token.value);
+        BinaryOperation(&mut tokens);
     }
 }
